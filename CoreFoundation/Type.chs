@@ -10,6 +10,7 @@ module CoreFoundation.Type(
   CFTypeID(..),
   dynamicType,
   dynamicCast,
+  typeIDDescription,
   -- * Memory management
   Ref,
   -- * Determining equality
@@ -29,11 +30,10 @@ import Control.Applicative
 import Control.Monad
 
 import Data.Text(Text, unpack)
-import CoreFoundation.Base
+{#import CoreFoundation.Base#}
 import CoreFoundation.String
 
 -- because the newtype is defined in Base
-{#pointer CFTypeRef -> CFType#}
 {#pointer CFStringRef -> CFString#}
 
 -- helper

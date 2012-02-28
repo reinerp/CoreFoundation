@@ -3,6 +3,7 @@ module CoreFoundation.Base(
   -- * Object-oriented hierarchy
   Proxy,
   CFType,
+  CFTypeRef,
   IsCFType(..),
   -- ** Coercing to @CFType@
   toCFType,
@@ -11,7 +12,7 @@ module CoreFoundation.Base(
   dynamicType,
   dynamicCast,
   -- * Memory management
-  Ref,
+  Ref(..),
   withRef,
   create,
   unsafeCastRef,

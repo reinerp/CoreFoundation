@@ -10,12 +10,15 @@ module CoreFoundation.Array(
 
 import Control.Applicative
 
-import Foreign
+import Foreign.ForeignPtr.Unsafe(unsafeForeignPtrToPtr)
+import Foreign hiding(unsafeForeignPtrToPtr)
 import Foreign.C.Types
 
-import CoreFoundation.Base
+{#import CoreFoundation.Base#}
 
 import qualified Data.Vector as V
+import qualified Data.Vector.Storable as S
+import qualified Data.Vector.Storable.Mutable as SM
 
 {- |
 Arrays of 'CFType' objects.
@@ -23,20 +26,22 @@ Arrays of 'CFType' objects.
 data CFArray
 {#pointer CFArrayRef -> CFArray#}
 
-fromVector :: V.Vector (Ref CFData) -> IO (Ref CFArray)
-fromVector = undefined -- we can do this one
+extractPtr :: Ref CFType -> Ptr CFType
+extractPtr (Ref r) = unsafeForeignPtrToPtr r
 
-fromVectorManaged :: V.Vector (ForeignPtr CFData) -> Create CFArray
+fromVector :: V.Vector (Ref CFType) -> IO (Ref CFArray)
+fromVector v = 
+  create $
+    S.unsafeWith (V.convert (V.map extractPtr v)) $ \buf ->
+      {#call unsafe hsCFArrayCreate as ^ #} buf (fromIntegral $ V.length v)
 
-fromByteString :: B.ByteString -> Create CFData
-fromByteString bs = Create $ B.unsafeUseAsCStringLen bs $ \(buf, len) ->
-  {#call unsafe CFDataCreate as ^ #} nullPtr (castPtr buf) (fromIntegral len)
+toVector :: Ref CFArray -> IO (V.Vector (Ref CFType))
+toVector r = withRef r $ \p -> do
+  len <- {#call unsafe CFArrayGetCount as ^ #} p
+  mvec <- SM.new (fromIntegral len)
+  SM.unsafeWith mvec $ \ptr -> {#call unsafe hsCFArrayGetValues#} p len ptr
+  vec <- S.unsafeFreeze mvec
+  V.mapM (create . return) $ S.convert vec
 
-toByteString :: Ptr CFData -> IO B.ByteString
-toByteString p = do
-  buf <- {#call unsafe CFDataGetBytePtr as ^ #} p
-  len <- {#call unsafe CFDataGetLength as ^ #} p
-  B.packCStringLen (castPtr buf, fromIntegral len)
-
-instance IsCFType CFData where 
-  staticType _ = CFTypeID {#call pure unsafe CFDataGetTypeID as ^ #}
+instance IsCFType CFArray where 
+  staticType _ = CFTypeID {#call pure unsafe CFArrayGetTypeID as ^ #}
