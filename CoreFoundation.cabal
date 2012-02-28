@@ -1,0 +1,40 @@
+Name:                CoreFoundation
+Version:             0.1
+Synopsis:            Bindings to Mac OSX's CoreFoundation framework
+Description:         Bindings to Mac OSX's CoreFoudnation framework
+License:             BSD3
+License-file:        LICENSE
+Author:              Reiner Pope
+Maintainer:          reiner.pope@gmail.com
+-- Copyright:
+Category:            System
+Build-type:          Simple
+Extra-source-files:
+  cbits/cbits.h
+Cabal-version:       >=1.2
+
+Library
+  Exposed-modules:
+     CoreFoundation.Base
+     CoreFoundation.String
+     CoreFoundation.Data
+     CoreFoundation.Type
+  Frameworks:
+     CoreFoundation
+
+  Build-depends:
+     base < 5,
+     bytestring >= 0.9 && < 0.10,
+     text >= 0.7 && <0.12
+
+  Build-tools:
+    c2hs
+
+  Include-dirs:
+    cbits
+  C-Sources:
+    cbits/cbits.c
+
+  Other-modules:
+    C2HS
+  -- Build-tools:
