@@ -20,6 +20,7 @@ Library
      CoreFoundation.Data
      CoreFoundation.Type
      CoreFoundation.Array
+     CoreFoundation.Dictionary
   Frameworks:
      CoreFoundation
 

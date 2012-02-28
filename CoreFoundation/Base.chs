@@ -15,6 +15,7 @@ module CoreFoundation.Base(
   Ref(..),
   withRef,
   create,
+  get,
   unsafeCastRef,
   ) where
 
@@ -112,6 +113,14 @@ create gen =
         when (ptr == nullPtr) $ fail "CoreFoundation.manageObj: object is NULL"
         Ref <$> newForeignPtr unrefPtr ptr)
 
+-- | Own (i.e. retain) the object, and put it under Haskell's memory management.
+get :: IsCFType a => IO (Ptr a) -> IO (Ref a)
+get gen = create $ do
+  ptr <- gen
+  ref ptr
+  return ptr
+    
+
 -- implementation functions
 foreign import ccall unsafe "&CFRelease"
   unrefPtr :: FinalizerPtr a
@@ -121,3 +130,8 @@ unref :: IsCFType a => Ptr a -> IO ()
 unref ptr
   | ptr == nullPtr = return ()
   | otherwise = {#call unsafe CFRelease as ^ #} (castPtr ptr)
+
+ref :: IsCFType a => Ptr a -> IO ()
+ref ptr
+  | ptr == nullPtr = return ()
+  | otherwise = Foreign.void $ {#call unsafe CFRetain as ^ #} (castPtr ptr)
