@@ -23,6 +23,7 @@ Library
      CoreFoundation.Dictionary
      CoreFoundation.Date
      CoreFoundation.Boolean
+     CoreFoundation.Number
   Frameworks:
      CoreFoundation
 
@@ -50,6 +51,9 @@ Library
     cbits
   C-Sources:
     cbits/cbits.c
+
+  Ghc-options:
+    -funbox-strict-fields
 
   Other-modules:
     C2HS

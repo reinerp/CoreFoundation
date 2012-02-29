@@ -23,3 +23,11 @@ CFBooleanRef hsTrue() {
 CFBooleanRef hsFalse() {
   return kCFBooleanFalse;
 }
+
+CFNumberType hsFloat64Type() {
+  return kCFNumberFloat64Type;
+}
+
+CFNumberType hsInt64Type() {
+  return kCFNumberSInt64Type;
+}
