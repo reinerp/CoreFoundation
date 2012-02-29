@@ -21,14 +21,26 @@ Library
      CoreFoundation.Type
      CoreFoundation.Array
      CoreFoundation.Dictionary
+     CoreFoundation.Date
   Frameworks:
      CoreFoundation
+
+  Extensions:
+     ForeignFunctionInterface,
+     TypeFamilies,
+     GeneralizedNewtypeDeriving,
+     EmptyDataDecls,
+     ScopedTypeVariables,
+     ViewPatterns
+
 
   Build-depends:
      base < 5,
      bytestring >= 0.9 && < 0.10,
      text >= 0.7 && <0.12,
-     vector >= 0.5 && < 0.10
+     vector >= 0.5 && < 0.10,
+     time < 1.5,
+     tagged == 0.2.*
 
   Build-tools:
     c2hs
@@ -40,4 +52,5 @@ Library
 
   Other-modules:
     C2HS
+    CoreFoundation.Touch
   -- Build-tools:

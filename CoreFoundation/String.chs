@@ -1,5 +1,5 @@
-{-# LANGUAGE ForeignFunctionInterface, ScopedTypeVariables, EmptyDataDecls #-}
 module CoreFoundation.String(
+  String,
   CFString,
   fromText,
   toText,
@@ -10,6 +10,8 @@ module CoreFoundation.String(
 
 import Control.Applicative
 
+import Prelude hiding(String)
+import qualified System.IO.Unsafe as U
 import Foreign
 import Foreign.C.Types
 
@@ -19,28 +21,37 @@ import qualified Data.Text.Foreign as Text
 {#import CoreFoundation.Base#}
 
 data CFString
+newtype String = String { unString :: Ref CFString }
+instance CF String where
+  type Repr String = CFString
+  wrap = String
+  unwrap = unString
 {#pointer CFStringRef -> CFString#}
 
-fromText :: Text.Text -> IO (Ref CFString)
-fromText t = create $ Text.useAsPtr t $ \buf len ->
-  {#call unsafe CFStringCreateWithCharacters as ^ #} nullPtr (safeCastPtr buf) (fromIntegral len)
+instance CFConcrete String where
+  type Hs String = Text.Text
+  fromHs t = 
+    U.unsafePerformIO $
+    Text.useAsPtr t $ \buf len ->
+    create $
+    {#call unsafe CFStringCreateWithCharacters as ^ #} nullPtr (castPtr buf) (fromIntegral len)
+  toHs str =
+    U.unsafePerformIO $
+    withObject str $ \str_p -> do
+      len <- {#call unsafe CFStringGetLength as ^ #} str_p
+      ptr <- {#call unsafe CFStringGetCharactersPtr as ^ #} str_p
+      if ptr /= nullPtr
+        then Text.fromPtr (castPtr ptr) (fromIntegral len)
+        else allocaArray (fromIntegral len) $ \out_ptr -> do
+          {#call unsafe hsCFStringGetCharacters as ^ #} str_p len out_ptr
+          Text.fromPtr (castPtr out_ptr) (fromIntegral len)
+  staticType _ = TypeID {#call pure unsafe CFStringGetTypeID as ^ #}
 
-toText :: Ref CFString -> IO Text.Text
-toText ref = withRef ref $ \str_p -> do
-  len <- {#call unsafe CFStringGetLength as ^ #} str_p
-  ptr <- {#call unsafe CFStringGetCharactersPtr as ^ #} str_p
-  if ptr /= nullPtr
-    then Text.fromPtr (safeCastPtr ptr) (fromIntegral len)
-    else allocaArray (fromIntegral len) $ \out_ptr -> do
-      {#call unsafe hsCFStringGetCharacters as ^ #} str_p len out_ptr
-      Text.fromPtr (safeCastPtr out_ptr) (fromIntegral len)
 
-instance IsCFType CFString where 
-  staticType _ = CFTypeID {#call pure unsafe CFStringGetTypeID as ^ #}
+-- | Synonym for 'fromHs'
+fromText :: Text.Text -> String
+fromText = fromHs
 
-safeCastPtr :: forall a b. (Storable a, Storable b) => Ptr a -> Ptr b
-safeCastPtr =
-  if sizeOf (undefined :: a) == sizeOf (undefined :: b)
-  then castPtr
-  else error "CoreFoundation.String: Unexpected mismatch between CFString's UniChar and Data.Text's Word16"
-
+-- | Synonym for 'toHs'
+toText :: String -> Text.Text
+toText = toHs

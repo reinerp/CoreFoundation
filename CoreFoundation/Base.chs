@@ -1,35 +1,85 @@
-{-# LANGUAGE ForeignFunctionInterface, GeneralizedNewtypeDeriving, EmptyDataDecls, ScopedTypeVariables #-}
 module CoreFoundation.Base(
   -- * Object-oriented hierarchy
-  Proxy,
+  CF(..),
+  CFConcrete(..),
+  dynamicCast,
+  -- ** The 'Object' type
+  Object,
+  withObject,
+  toObject,
+  -- * Internals
   CFType,
   CFTypeRef,
-  IsCFType(..),
-  -- ** Coercing to @CFType@
-  toCFType,
-  -- ** Coercing between Core Foundation types
-  CFTypeID(..),
+  -- ** Type IDs and coercions
+  TypeID(..),
   dynamicType,
-  dynamicCast,
-  -- * Memory management
+  -- ** Memory management
   Ref(..),
-  withRef,
+  extractPtr,
   create,
   get,
-  unsafeCastRef,
   ) where
 
 #include "CoreFoundation/CFBase.h"
 #include "CoreFoundation/CFString.h"
 
-import Foreign
+import System.IO.Unsafe(unsafePerformIO)
+import Foreign hiding(unsafePerformIO)
 import Foreign.C.Types
 import Control.Applicative
 import Control.Monad
 import Control.Exception
+import Data.Proxy
 
-{#pointer CFTypeRef -> CFType #}
 -------------------- Object-oriented hierarchy
+
+{- |
+The class of CoreFoundation objects. For communicating with CoreFoundation methods, the underlying CoreFoundation object can be accessed using 'withObject'. All objects can be converted to 'Object' using 'toObject'.
+-}
+class CF ty where
+  type Repr ty
+  wrap :: Ref (Repr ty) -> ty
+  unwrap :: ty -> Ref (Repr ty)
+
+{- |
+\"Concrete\" CoreFoundation objects. These are immutable, and can be marshalled in pure code
+using 'toHs' and 'fromHs'. Checked coercions (i.e. ones which may fail at runtime) are provided by 'dynamicCast'.
+-}
+class CF ty => CFConcrete ty where
+  -- converting to hs value
+  type Hs ty
+  toHs :: ty -> Hs ty
+  fromHs :: Hs ty -> ty
+  -- misc
+  staticType :: Proxy ty -> TypeID
+
+{- |
+Dynamic cast between CoreFoundation types. The argument's type is compared at runtime to the
+desired 'staticType'. On a match, 'Just' is returned; otherwise 'Nothing'.
+-}
+dynamicCast :: forall a b. (CF a, CFConcrete b) => a -> Maybe b
+dynamicCast a = 
+  if dynamicType a == staticType (Proxy :: Proxy b)
+     then Just (wrap . Ref . castForeignPtr . unRef . unwrap $ a)
+     else Nothing
+
+--- The 'Object' type
+{#pointer CFTypeRef -> CFType #}
+
+data CFType
+newtype Object = Object { unObject :: Ref CFType }
+instance CF Object where
+  type Repr Object = CFType
+  wrap = Object
+  unwrap = unObject
+
+-- | Unsafe: don't modify the object (although most CoreFoundation functions don't allow you to)
+withObject :: CF a => a -> (Ptr (Repr a) -> IO b) -> IO b
+withObject = withForeignPtr . unRef . unwrap
+
+toObject :: CF a => a -> Object
+toObject = wrap . Ref . castForeignPtr . unRef . unwrap
+
 ----------------------- Type IDs
 {- |
 A type for unique, constant integer values that identify particular Core Foundation opaque types.
@@ -38,7 +88,7 @@ A type for unique, constant integer values that identify particular Core Foundat
 
  [Discussion] Defines a type identifier in Core Foundation. A type ID is an integer that identifies the opaque type to which a Core Foundation object “belongs.” You use type IDs in various contexts, such as when you are operating on heterogeneous collections. Core Foundation provides programmatic interfaces for obtaining and evaluating type IDs. Because the value for a type ID can change from release to release, your code should not rely on stored or hard-coded type IDs nor should it hard-code any observed properties of a type ID (such as, for example, it being a small integer).
 -}
-newtype CFTypeID = CFTypeID {#type CFTypeID#}
+newtype TypeID = TypeID {#type CFTypeID#}
   deriving(Eq, Ord)
 
 {- |
@@ -49,89 +99,54 @@ change from release to release or platform to platform.
 
  [Availability] Available in Mac OS X v10.0 and later.
 -}
-dynamicType :: IsCFType a => Ref a -> IO CFTypeID
-dynamicType p = CFTypeID <$> withRef (toCFType p) {#call unsafe CFGetTypeID as ^ #}
-
--- | Uninhabited type; see 'staticType'.
-data Proxy a
-
-{- |
-All other Core Foundation opaque types derive from CFType. The functions, callbacks, data types, and constants defined for CFType can be used by any derived opaque type. Hence, CFType functions are referred to as “polymorphic functions.” You use CFType functions to retain and release objects, to compare and inspect objects, get descriptions of objects and opaque types, and to get object allocators.
-
-See <https://developer.apple.com/library/mac/#documentation/CoreFoundation/Reference/CFTypeRef/Reference/reference.html>.
--}
-data CFType
-
--- | The class of all CoreFoundation objects.
-class IsCFType o where
-  -- | Static type ID. The first argument is not inspected, so this function may be called for example
-  -- as follows
-  --
-  -- > staticType (undefined :: Proxy CFString)
-  --
-  staticType :: Proxy o -> CFTypeID
-instance IsCFType CFType where
-  staticType _ = error "CFType has no static type"
-
-{- |
-Safe conversion to 'CFType'.
--}
-toCFType :: IsCFType a => Ref a -> Ref CFType
-toCFType = unsafeCastRef
-
-{- |
-Dynamic cast between CoreFoundation types. The argument's type is compared at runtime to the
-desired 'staticType'. On a match, 'Just' is returned; otherwise 'Nothing'.
--}
-dynamicCast :: forall a b. (IsCFType a, IsCFType b) => Ref a -> IO (Maybe (Ref b))
-dynamicCast ref = do
-  ty <- dynamicType ref
-  if ty == staticType (undefined :: Proxy b)
-    then return (Just (unsafeCastRef ref))
-    else return Nothing
+dynamicType :: CF a => a -> TypeID
+dynamicType o = 
+  TypeID $
+  unsafePerformIO $
+  withObject (toObject o) {#call unsafe CFGetTypeID as ^ #}
 
 ------------------- managing memory
 
 -- | A managed reference to the object a. These are approximately pointers to a,
 -- but when garbage-collected, they release their underlying objects as appropriate.
-newtype Ref a = Ref (ForeignPtr a)
+newtype Ref a = Ref { unRef :: ForeignPtr a }
 
-unsafeCastRef :: Ref a -> Ref b
-unsafeCastRef (Ref a) = Ref (castForeignPtr a)
-
--- | Use the managed object.
-withRef :: Ref a -> (Ptr a -> IO b) -> IO b
-withRef (Ref fp) = withForeignPtr fp
-
--- | Put the newly-created object under Haskell's memory management.
-create :: IsCFType a => IO (Ptr a) -> IO (Ref a)
+-- | Put the newly-created object under Haskell's memory management. This 
+create :: CF a => IO (Ptr (Repr a)) -> IO a
 create gen =
   bracketOnError
     gen
     unref
     (\ptr -> do
         when (ptr == nullPtr) $ fail "CoreFoundation.manageObj: object is NULL"
-        Ref <$> newForeignPtr unrefPtr ptr)
+        (wrap . Ref) <$> newForeignPtr unrefPtr ptr)
+
+-- | Extract the underlying pointer. Make sure to touch the 'ForeignPtr' after using the 'Ptr',
+-- to make sure that the object isn't accidentally finalised.
+--
+-- To avoid this concern, prefer to use 'withObject' when possible
+extractPtr :: CF a => a -> Ptr (Repr a)
+extractPtr = unsafeForeignPtrToPtr . unRef . unwrap
 
 -- | Own (i.e. retain) the object, and put it under Haskell's memory management.
-get :: IsCFType a => IO (Ptr a) -> IO (Ref a)
+get :: CF a => IO (Ptr (Repr a)) -> IO a
 get gen = create $ do
   ptr <- gen
   ref ptr
   return ptr
-    
+
 
 -- implementation functions
 foreign import ccall unsafe "&CFRelease"
   unrefPtr :: FinalizerPtr a
 
 -- | Manual memory management
-unref :: IsCFType a => Ptr a -> IO ()
+unref :: Ptr a -> IO ()
 unref ptr
   | ptr == nullPtr = return ()
   | otherwise = {#call unsafe CFRelease as ^ #} (castPtr ptr)
 
-ref :: IsCFType a => Ptr a -> IO ()
+ref :: Ptr a -> IO ()
 ref ptr
   | ptr == nullPtr = return ()
   | otherwise = Foreign.void $ {#call unsafe CFRetain as ^ #} (castPtr ptr)

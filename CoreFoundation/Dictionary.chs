@@ -1,5 +1,6 @@
 {-# LANGUAGE ForeignFunctionInterface, ScopedTypeVariables, EmptyDataDecls, ViewPatterns #-}
 module CoreFoundation.Dictionary(
+  Dictionary,
   CFDictionary,
   fromVectors,
   toVectors,
@@ -10,39 +11,56 @@ module CoreFoundation.Dictionary(
 
 import Control.Applicative
 
+import qualified System.IO.Unsafe as U
 import Foreign.ForeignPtr.Unsafe(unsafeForeignPtrToPtr)
 import Foreign hiding(unsafeForeignPtrToPtr)
 import Foreign.C.Types
 
 {#import CoreFoundation.Base#}
-import CoreFoundation.Array
+import CoreFoundation.Array.Internal
 
 import qualified Data.Vector as V
-import qualified Data.Vector.Storable as S
-import qualified Data.Vector.Storable.Mutable as SM
 
 {- |
 Arrays of 'CFType' objects.
 -}
-data CFDictionary k v
---{#pointer CFDictionaryRef -> CFDictionary #}
+data CFDictionary
+newtype Dictionary k v = Dictionary { unDictionary :: Ref CFDictionary }
+{#pointer CFDictionaryRef -> CFDictionary #}
+instance (CF k, CF v) => CF (Dictionary k v) where
+  type Repr (Dictionary k v) = CFDictionary
+  wrap = Dictionary
+  unwrap = unDictionary
+instance (CF k, CF v) => CFConcrete (Dictionary k v) where
+  type Hs (Dictionary k v) = (V.Vector k, V.Vector v)
+  fromHs (keys, vals)
+    | V.length keys /= V.length vals = error "CoreFoundation.Dictionary.fromHs: Vectors must have equal length"
+    | otherwise =
+        U.unsafePerformIO $
+        withVector keys $ \pk len ->
+        withVector vals $ \pv _ ->
+        create $ 
+        castPtr <$> 
+        {#call unsafe hsCFDictionaryCreate as ^ #} 
+          (castPtr pk)
+          (castPtr pv)
+          (fromIntegral len)
+  toHs o =
+    U.unsafePerformIO $
+    withObject o $ \p -> do
+      len <- {#call unsafe CFDictionaryGetCount as ^ #} p
+      buildVector (fromIntegral len) $ \kp ->
+        fst <$> (buildVector (fromIntegral len) $ \vp ->
+          {#call unsafe CFDictionaryGetKeysAndValues as ^ #} 
+             p 
+             (castPtr kp) 
+             (castPtr vp)
+         )
+  staticType _ = TypeID {#call pure unsafe CFDictionaryGetTypeID as ^ #}
 
-fromVectors :: (IsCFType k, IsCFType v) => 
-   V.Vector (Ref k) -> V.Vector (Ref v) -> IO (Ref (CFDictionary k v))
-fromVectors keys vals 
-  | V.length keys /= V.length vals = error "CoreFoundation.Dictionary.fromVectors: Vectors must have equal length"
-  | otherwise =
-  withVector_ keys $ \pk len ->
-  withVector_ vals $ \pv _ ->
-    create $ castPtr <$>
-      {#call unsafe hsCFDictionaryCreate as ^ #} (castPtr pk) (castPtr pv) (fromIntegral len)
+-- | Synonym for 'fromHs'
+fromVectors :: (CF k, CF v) => (V.Vector k, V.Vector v) -> Dictionary k v
+fromVectors = fromHs
 
-toVectors :: (IsCFType k, IsCFType v) => Ref (CFDictionary k v) -> IO (V.Vector (Ref k), V.Vector (Ref v))
-toVectors r = withRef r $ \(castPtr -> p) -> do
-  len <- {#call unsafe CFDictionaryGetCount as ^ #} p
-  buildVector_ (fromIntegral len) $ \kp ->
-    fst <$> (buildVector_ (fromIntegral len) $ \vp ->
-      {#call unsafe CFDictionaryGetKeysAndValues as ^ #} p (castPtr kp) (castPtr vp))
-
-instance IsCFType (CFDictionary k v) where 
-  staticType _ = CFTypeID {#call pure unsafe CFDictionaryGetTypeID as ^ #}
+toVectors :: (CF k, CF v) => Dictionary k v -> (V.Vector k, V.Vector v)
+toVectors = toHs
