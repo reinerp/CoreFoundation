@@ -29,7 +29,7 @@ instance CFConcrete Boolean where
   fromHs True = kTrue
   fromHs False = kFalse
 
-  staticType _ = TypeID {#call pure unsafe CFDateGetTypeID as ^ #}
+  staticType _ = TypeID {#call pure unsafe CFBooleanGetTypeID as ^ #}
 
 toBool :: Boolean -> Bool
 toBool = toHs
