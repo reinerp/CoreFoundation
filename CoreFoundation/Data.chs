@@ -30,6 +30,7 @@ instance CF Data where
   unwrap = unData
 {#pointer CFDataRef -> CFData#}
 
+type instance UnHs B.ByteString = Data
 instance CFConcrete Data where
   type Hs Data = B.ByteString
   fromHs bs = 

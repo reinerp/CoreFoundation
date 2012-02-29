@@ -21,6 +21,8 @@ instance CF Boolean where
   type Repr Boolean = CFBoolean
   wrap = Boolean
   unwrap = unBoolean
+
+type instance UnHs Bool = Boolean
 instance CFConcrete Boolean where
   type Hs Boolean = Bool
   toHs o =

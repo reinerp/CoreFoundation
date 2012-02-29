@@ -1,9 +1,9 @@
 module CoreFoundation.Number(
-  HsNumber,
+  HsNumber(..),
   Number,
   CFNumber,
-  toNumber,
-  fromNumber,
+  toHsNumber,
+  fromHsNumber,
   ) where
 
 #include <CoreFoundation/CFNumber.h>
@@ -34,6 +34,8 @@ instance CF Number where
   type Repr Number = CFNumber
   wrap = Number
   unwrap = unNumber
+
+type instance UnHs HsNumber = Number
 instance CFConcrete Number where
   type Hs Number = HsNumber
   toHs o =
@@ -57,8 +59,6 @@ instance CFConcrete Number where
 
   staticType _ = TypeID {#call pure unsafe CFNumberGetTypeID as ^ #}
 
-
-
 createWith n nty =
     U.unsafePerformIO $
     with n $ \np ->
@@ -68,8 +68,8 @@ createWith n nty =
       nty
       (castPtr np)
 
-toNumber :: Number -> HsNumber
-toNumber = toHs
+toHsNumber :: Number -> HsNumber
+toHsNumber = toHs
 
-fromNumber :: HsNumber -> Number
-fromNumber = fromHs
+fromHsNumber :: HsNumber -> Number
+fromHsNumber = fromHs

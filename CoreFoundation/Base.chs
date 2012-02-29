@@ -2,6 +2,7 @@ module CoreFoundation.Base(
   -- * Object-oriented hierarchy
   CF(..),
   CFConcrete(..),
+  UnHs,
   dynamicCast,
   -- ** The 'Object' type
   Object,
@@ -15,6 +16,7 @@ module CoreFoundation.Base(
   dynamicType,
   -- ** Memory management
   Ref(..),
+  unsafeCastCF,
   extractPtr,
   create,
   get,
@@ -47,13 +49,16 @@ class CF ty where
 \"Concrete\" CoreFoundation objects. These are immutable, and can be marshalled in pure code
 using 'toHs' and 'fromHs'. Checked coercions (i.e. ones which may fail at runtime) are provided by 'dynamicCast'.
 -}
-class CF ty => CFConcrete ty where
+class (ty ~ UnHs (Hs ty), CF ty) => CFConcrete ty where
   -- converting to hs value
   type Hs ty
   toHs :: ty -> Hs ty
   fromHs :: Hs ty -> ty
   -- misc
   staticType :: Proxy ty -> TypeID
+
+-- | Inverse of 'Hs'. Used as a superclass of 'CFConcrete'.
+type family UnHs ty :: *
 
 {- |
 Dynamic cast between CoreFoundation types. The argument's type is compared at runtime to the
@@ -62,7 +67,7 @@ desired 'staticType'. On a match, 'Just' is returned; otherwise 'Nothing'.
 dynamicCast :: forall a b. (CF a, CFConcrete b) => a -> Maybe b
 dynamicCast a = 
   if dynamicType a == staticType (Proxy :: Proxy b)
-     then Just (wrap . Ref . castForeignPtr . unRef . unwrap $ a)
+     then Just (unsafeCastCF a)
      else Nothing
 
 --- The 'Object' type
@@ -80,7 +85,7 @@ withObject :: CF a => a -> (Ptr (Repr a) -> IO b) -> IO b
 withObject = withForeignPtr . unRef . unwrap
 
 toObject :: CF a => a -> Object
-toObject = wrap . Ref . castForeignPtr . unRef . unwrap
+toObject = unsafeCastCF
 
 ----------------------- Type IDs
 {- |
@@ -112,6 +117,9 @@ dynamicType o =
 -- | A managed reference to the object a. These are approximately pointers to a,
 -- but when garbage-collected, they release their underlying objects as appropriate.
 newtype Ref a = Ref { unRef :: ForeignPtr a }
+
+unsafeCastCF :: (CF a, CF b) => a -> b
+unsafeCastCF = wrap . Ref . castForeignPtr . unRef . unwrap
 
 -- | Put the newly-created object under Haskell's memory management. This 
 create :: CF a => IO (Ptr (Repr a)) -> IO a

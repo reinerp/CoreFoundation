@@ -1,4 +1,5 @@
 module CoreFoundation.Array(
+  Array,
   CFArray,
   fromVector,
   toVector,
@@ -31,6 +32,8 @@ instance CF a => CF (Array a) where
   type Repr (Array a) = CFArray
   wrap = Array
   unwrap = unArray
+
+type instance UnHs (V.Vector a) = Array a
 instance CF a => CFConcrete (Array a) where
   type Hs (Array a) = V.Vector a
   fromHs v =

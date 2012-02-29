@@ -24,6 +24,8 @@ instance CF Date where
   type Repr Date = CFDate
   wrap = Date
   unwrap = unDate
+
+type instance UnHs UTCTime = Date
 instance CFConcrete Date where
   type Hs Date = UTCTime
   toHs o =

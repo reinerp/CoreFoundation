@@ -4,6 +4,8 @@ module CoreFoundation.Dictionary(
   CFDictionary,
   fromVectors,
   toVectors,
+  fromMap,
+  toMap,
   ) where
 
 #include "CoreFoundation/CFDictionary.h"
@@ -16,9 +18,11 @@ import Foreign.ForeignPtr.Unsafe(unsafeForeignPtrToPtr)
 import Foreign hiding(unsafeForeignPtrToPtr)
 import Foreign.C.Types
 
+
 {#import CoreFoundation.Base#}
 import CoreFoundation.Array.Internal
 
+import qualified Data.Map as M
 import qualified Data.Vector as V
 
 {- |
@@ -31,6 +35,8 @@ instance (CF k, CF v) => CF (Dictionary k v) where
   type Repr (Dictionary k v) = CFDictionary
   wrap = Dictionary
   unwrap = unDictionary
+
+type instance UnHs (V.Vector k, V.Vector v) = Dictionary k v
 instance (CF k, CF v) => CFConcrete (Dictionary k v) where
   type Hs (Dictionary k v) = (V.Vector k, V.Vector v)
   fromHs (keys, vals)
@@ -62,5 +68,12 @@ instance (CF k, CF v) => CFConcrete (Dictionary k v) where
 fromVectors :: (CF k, CF v) => (V.Vector k, V.Vector v) -> Dictionary k v
 fromVectors = fromHs
 
+-- | Synonym for 'toHs'
 toVectors :: (CF k, CF v) => Dictionary k v -> (V.Vector k, V.Vector v)
 toVectors = toHs
+
+fromMap :: (CF k, CF v) => M.Map k v -> Dictionary k v
+fromMap = fromVectors . V.unzip . V.fromList . M.toList
+
+toMap :: (Ord k, CF k, CF v) => Dictionary k v -> M.Map k v
+toMap = M.fromList . V.toList . uncurry V.zip . toVectors

@@ -3,6 +3,8 @@ module CoreFoundation.String(
   CFString,
   fromText,
   toText,
+  fromString,
+  toString,
   ) where
 
 #include "CoreFoundation/CFString.h"
@@ -11,6 +13,7 @@ module CoreFoundation.String(
 import Control.Applicative
 
 import Prelude hiding(String)
+import qualified Prelude
 import qualified System.IO.Unsafe as U
 import Foreign
 import Foreign.C.Types
@@ -28,6 +31,7 @@ instance CF String where
   unwrap = unString
 {#pointer CFStringRef -> CFString#}
 
+type instance UnHs Text.Text = String
 instance CFConcrete String where
   type Hs String = Text.Text
   fromHs t = 
@@ -55,3 +59,9 @@ fromText = fromHs
 -- | Synonym for 'toHs'
 toText :: String -> Text.Text
 toText = toHs
+
+fromString :: Prelude.String -> String
+fromString = fromText . Text.pack
+
+toString :: String -> Prelude.String
+toString = Text.unpack . toText

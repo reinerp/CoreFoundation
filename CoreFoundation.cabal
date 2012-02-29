@@ -24,6 +24,7 @@ Library
      CoreFoundation.Date
      CoreFoundation.Boolean
      CoreFoundation.Number
+     CoreFoundation.PropertyList
   Frameworks:
      CoreFoundation
 
@@ -33,16 +34,22 @@ Library
      GeneralizedNewtypeDeriving,
      EmptyDataDecls,
      ScopedTypeVariables,
-     ViewPatterns
+     ViewPatterns,
+     FlexibleInstances,
+     FlexibleContexts,
+     MultiParamTypeClasses
 
 
   Build-depends:
      base < 5,
      bytestring >= 0.9 && < 0.10,
+     containers < 0.5,
      text >= 0.7 && <0.12,
      vector >= 0.5 && < 0.10,
      time < 1.5,
-     tagged == 0.2.*
+     tagged == 0.2.*,
+     transformers == 0.2.*,
+     property-list >= 0.0.1 && < 0.2
 
   Build-tools:
     c2hs
