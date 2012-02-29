@@ -22,6 +22,7 @@ Library
      CoreFoundation.Array
      CoreFoundation.Dictionary
      CoreFoundation.Date
+     CoreFoundation.Boolean
   Frameworks:
      CoreFoundation
 

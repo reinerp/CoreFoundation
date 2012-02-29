@@ -15,3 +15,11 @@ void hsCFArrayGetValues(CFArrayRef theArray, CFIndex len, const void **values) {
 CFDictionaryRef hsCFDictionaryCreate(const void **keys, const void **values, CFIndex numValues) {
   CFDictionaryCreate(NULL, keys, values, numValues, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
 }
+
+CFBooleanRef hsTrue() {
+  return kCFBooleanTrue;
+}
+
+CFBooleanRef hsFalse() {
+  return kCFBooleanFalse;
+}

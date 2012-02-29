@@ -18,13 +18,15 @@ module CoreFoundation.Base(
   extractPtr,
   create,
   get,
+  constant,
   ) where
 
 #include "CoreFoundation/CFBase.h"
 #include "CoreFoundation/CFString.h"
 
-import System.IO.Unsafe(unsafePerformIO)
-import Foreign hiding(unsafePerformIO)
+import System.IO.Unsafe as U
+import Foreign
+import Foreign.ForeignPtr.Unsafe as U
 import Foreign.C.Types
 import Control.Applicative
 import Control.Monad
@@ -102,7 +104,7 @@ change from release to release or platform to platform.
 dynamicType :: CF a => a -> TypeID
 dynamicType o = 
   TypeID $
-  unsafePerformIO $
+  U.unsafePerformIO $
   withObject (toObject o) {#call unsafe CFGetTypeID as ^ #}
 
 ------------------- managing memory
@@ -126,7 +128,7 @@ create gen =
 --
 -- To avoid this concern, prefer to use 'withObject' when possible
 extractPtr :: CF a => a -> Ptr (Repr a)
-extractPtr = unsafeForeignPtrToPtr . unRef . unwrap
+extractPtr = U.unsafeForeignPtrToPtr . unRef . unwrap
 
 -- | Own (i.e. retain) the object, and put it under Haskell's memory management.
 get :: CF a => IO (Ptr (Repr a)) -> IO a
@@ -135,6 +137,9 @@ get gen = create $ do
   ref ptr
   return ptr
 
+-- | Wrap a constant object: the object does not need to be retained or released.
+constant :: CF a => Ptr (Repr a) -> a
+constant = wrap . Ref . U.unsafePerformIO . newForeignPtr_
 
 -- implementation functions
 foreign import ccall unsafe "&CFRelease"
