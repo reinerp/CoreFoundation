@@ -51,7 +51,6 @@ import Control.Monad
 import Control.Exception
 import Data.Typeable
 import qualified Data.Vector as V
-import Data.Maybe(fromMaybe)
 import Foreign
 import Foreign.C.Types
 
@@ -112,10 +111,7 @@ getAppValue = call2 createNullable {#call unsafe CFPreferencesCopyAppValue as ^#
 Constructs and returns the list of all keys set in the specified domain. Wraps CFPreferencesCopyKeyList
 -}
 getKeyList :: AppID -> UserID -> HostID -> IO (Array Key)
-getKeyList = 
-  call3 
-    (fmap (fromMaybe (fromHs V.empty)) . createNullable)
-    {#call unsafe CFPreferencesCopyKeyList as ^ #}
+getKeyList = call3 createArray {#call unsafe CFPreferencesCopyKeyList as ^ #}
 
 {- |
 Returns a dictionary containing preference values for multiple keys. If no values were located, returns an empty dictionary. 
@@ -236,7 +232,7 @@ appValueIsForced = call2 (Foreign.toBool <$>) {#call unsafe CFPreferencesAppValu
 Constructs and returns the list of all applications that have preferences in the scope of the specified user and host.
 -}
 getAppList :: UserID -> HostID -> IO (Array AppID)
-getAppList = call2 create {#call unsafe CFPreferencesCopyApplicationList as ^ #}
+getAppList = call2 createArray {#call unsafe CFPreferencesCopyApplicationList as ^ #}
 
 
 -- marshalling utils

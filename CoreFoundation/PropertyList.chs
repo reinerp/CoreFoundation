@@ -7,6 +7,7 @@ module CoreFoundation.PropertyList(
   PlistClass,
   toPlist,
   fromPlist,
+  PlistView(..),
   viewPlist,
   -- * 'Data.PropertyList' compat
   toPropertyList,

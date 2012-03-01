@@ -3,6 +3,7 @@ module CoreFoundation.Array(
   CFArray,
   fromVector,
   toVector,
+  createArray,
   ) where
 
 #include "CoreFoundation/CFData.h"
@@ -10,6 +11,7 @@ module CoreFoundation.Array(
 
 import Control.Applicative
 import Control.Exception
+import Data.Maybe(fromMaybe)
 
 import qualified System.IO.Unsafe as U
 import Foreign.ForeignPtr.Unsafe(unsafeForeignPtrToPtr)
@@ -56,6 +58,10 @@ fromVector = fromHs
 
 toVector :: CF a => Array a -> V.Vector a
 toVector = toHs
+
+createArray :: CF a => IO (Ptr CFArray) -> IO (Array a)
+createArray = fmap (fromMaybe (fromHs V.empty)) . createNullable
+
 
 instance (CF a, Show a) => Show (Array a) where
   show = show . toHs
