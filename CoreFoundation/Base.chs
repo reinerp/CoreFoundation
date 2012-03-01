@@ -19,6 +19,8 @@ module CoreFoundation.Base(
   unsafeCastCF,
   extractPtr,
   create,
+  createNullable,
+  idScheme,
   get,
   constant,
   ) where
@@ -121,15 +123,28 @@ newtype Ref a = Ref { unRef :: ForeignPtr a }
 unsafeCastCF :: (CF a, CF b) => a -> b
 unsafeCastCF = wrap . Ref . castForeignPtr . unRef . unwrap
 
--- | Put the newly-created object under Haskell's memory management. This 
+idScheme :: IO a -> IO a
+idScheme = id
+
+-- | Put the newly-created object under Haskell's memory management, throwing an exception if the
+-- object is null.
 create :: CF a => IO (Ptr (Repr a)) -> IO a
-create gen =
+create gen = do
+  res <- createNullable gen
+  case res of
+    Nothing -> fail "CoreFoundation.create: null object"
+    Just p -> return p
+
+-- | Put the newly-created object under Haskell's memory management. This 
+createNullable :: CF a => IO (Ptr (Repr a)) -> IO (Maybe a)
+createNullable gen =
   bracketOnError
     gen
     unref
-    (\ptr -> do
-        when (ptr == nullPtr) $ fail "CoreFoundation.manageObj: object is NULL"
-        (wrap . Ref) <$> newForeignPtr unrefPtr ptr)
+    (\ptr ->
+        if ptr == nullPtr
+          then return Nothing
+          else (Just . wrap . Ref) <$> newForeignPtr unrefPtr ptr)
 
 -- | Extract the underlying pointer. Make sure to touch the 'ForeignPtr' after using the 'Ptr',
 -- to make sure that the object isn't accidentally finalised.

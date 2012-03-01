@@ -31,3 +31,27 @@ CFNumberType hsFloat64Type() {
 CFNumberType hsInt64Type() {
   return kCFNumberSInt64Type;
 }
+
+CFStringRef hsAnyApp() {
+  return kCFPreferencesAnyApplication;
+}
+
+CFStringRef hsAnyHost() {
+  return kCFPreferencesAnyHost;
+}
+
+CFStringRef hsAnyUser() {
+  return kCFPreferencesAnyUser;
+}
+
+CFStringRef hsCurrentApp() {
+  return kCFPreferencesCurrentApplication;
+}
+
+CFStringRef hsCurrentHost() {
+  return kCFPreferencesCurrentHost;
+}
+
+CFStringRef hsCurrentUser() {
+  return kCFPreferencesCurrentUser;
+}

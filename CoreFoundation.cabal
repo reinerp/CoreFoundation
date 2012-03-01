@@ -25,6 +25,7 @@ Library
      CoreFoundation.Boolean
      CoreFoundation.Number
      CoreFoundation.PropertyList
+     CoreFoundation.Preferences
   Frameworks:
      CoreFoundation
 
@@ -37,7 +38,8 @@ Library
      ViewPatterns,
      FlexibleInstances,
      FlexibleContexts,
-     MultiParamTypeClasses
+     MultiParamTypeClasses,
+     DeriveDataTypeable
 
 
   Build-depends:
