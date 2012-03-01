@@ -6,12 +6,18 @@ License:             BSD3
 License-file:        LICENSE
 Author:              Reiner Pope
 Maintainer:          reiner.pope@gmail.com
+homepage:            https://github.com/reinerp/CoreFoundation
+bug-reports:         https://github.com/reinerp/CoreFoundation/issues
 -- Copyright:
 Category:            System
 Build-type:          Simple
 Extra-source-files:
   cbits/cbits.h
-Cabal-version:       >=1.2
+Cabal-version:       >=1.6
+
+source-repository head
+  type:                 git
+  location:             git://github.com/reinerp/CoreFoundation.git
 
 Library
   Exposed-modules:
