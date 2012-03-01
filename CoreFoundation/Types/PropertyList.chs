@@ -1,6 +1,7 @@
 -- See http://www.declaresub.com/ideclare/CoreFoundation/12.html
 
-module CoreFoundation.PropertyList(
+-- | See <https://developer.apple.com/library/mac/#documentation/CoreFoundation/Reference/CFPropertyListRef/Reference/reference.html>
+module CoreFoundation.Types.PropertyList(
   -- * Basic interface
   Plist,
   CFPropertyList,
@@ -9,7 +10,7 @@ module CoreFoundation.PropertyList(
   fromPlist,
   PlistView(..),
   viewPlist,
-  -- * 'Data.PropertyList' compat
+  -- * "Data.PropertyList" compat
   toPropertyList,
   fromPropertyList,
   ) where
@@ -21,17 +22,19 @@ module CoreFoundation.PropertyList(
 import Prelude hiding(String)
 import qualified Prelude
 
-import CoreFoundation.Base
-import CoreFoundation.String
-import CoreFoundation.Number
-import CoreFoundation.Boolean
-import CoreFoundation.Date
-import CoreFoundation.Data
-import CoreFoundation.Array
-import CoreFoundation.Dictionary
+import CoreFoundation.Types.Base
+import CoreFoundation.Types.String
+import CoreFoundation.Types.Number
+import CoreFoundation.Types.Boolean
+import CoreFoundation.Types.Date
+import CoreFoundation.Types.Data
+import CoreFoundation.Types.Array
+import CoreFoundation.Types.Dictionary
 
 import Control.Arrow((***))
 import Control.Applicative
+import Data.Typeable
+import Control.DeepSeq
 import qualified Data.Vector as V
 import Data.Functor.Identity
 import qualified Data.Map as M
@@ -43,14 +46,38 @@ import qualified Data.PropertyList.Algebra as PL
 
 import Foreign hiding(fromBool)
 
+-- | The CoreFoundation @CFPropertyList@ type
 data CFPropertyList
+{- |
+Wraps the @CFPropertyListRef@ type. This is understood to be a
+superclass of all of:
+
+ * 'String'
+
+ * 'Number'
+
+ * 'Boolean'
+
+ * 'Date'
+
+ * 'Data'
+
+ * 'Array Plist'
+
+ * 'Dictionary String Plist'
+
+These can be converted to 'Plist's using 'toPlist', and can be
+extracted using either 'fromPlist' or 'viewPlist'.
+-}
 newtype Plist = Plist { unPlist :: Ref CFPropertyList }
+  deriving(Typeable)
 {#pointer CFPropertyListRef -> CFPropertyList#}
 instance CF Plist where
   type Repr Plist = CFPropertyList
   wrap = Plist
   unwrap = unPlist
 
+-- | Private class: don't add more instances!
 class CFConcrete a => PlistClass a
 instance PlistClass String
 instance PlistClass Number
@@ -60,12 +87,15 @@ instance PlistClass Data
 instance PlistClass (Array Plist)
 instance PlistClass (Dictionary String Plist)
 
+-- | Cast to 'Plist'
 toPlist :: PlistClass a => a -> Plist
 toPlist = unsafeCastCF
 
+-- | Try coercing the 'Plist'
 fromPlist :: PlistClass a => Plist -> Maybe a
 fromPlist = dynamicCast . toObject
 
+-- | Query the type of the 'Plist'
 viewPlist :: Plist -> PlistView
 viewPlist (fromPlist -> Just v) = String v
 viewPlist (fromPlist -> Just v) = Number v
@@ -76,6 +106,7 @@ viewPlist (fromPlist -> Just v) = Array v
 viewPlist (fromPlist -> Just v) = Dictionary v
 viewPlist _ = error "CoreFoundation.PropertyList.viewPlist: Unexpected type in Plist"
 
+-- | View of the \"outer level\" of a 'Plist'.
 data PlistView
  = String !String
  | Number !Number
@@ -84,10 +115,17 @@ data PlistView
  | Data !Data
  | Array !(Array Plist)
  | Dictionary !(Dictionary String Plist)
-  deriving(Show)
+  deriving(Show, Eq, Ord, Typeable)
+
+instance NFData PlistView
 
 instance Show Plist where
   show = show . viewPlist
+instance Eq Plist where
+  a == b = viewPlist a == viewPlist b
+instance Ord Plist where
+  compare a b = compare (viewPlist a) (viewPlist b)
+instance NFData Plist  
 
 ------------ support for Data.PropertyList
 instance PListAlgebra Identity Plist where
@@ -127,9 +165,11 @@ instance Applicative f => PListCoalgebra f Plist where
     mk :: forall b a. PlistClass a => (Hs a -> PropertyListS Plist) -> a -> f (PropertyListS Plist)
     mk ctor v = pure . ctor . toHs $ v
 
+-- | Convert to 'PL.PropertyList'
 toPropertyList :: Plist -> PL.PropertyList
 toPropertyList = PL.toPlist
 
+-- | Convert from 'PL.PropertyList'
 fromPropertyList :: PL.PropertyList -> Plist
 fromPropertyList = PL.toPlistWith idId
   where

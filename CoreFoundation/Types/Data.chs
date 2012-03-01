@@ -1,4 +1,4 @@
-module CoreFoundation.Data(
+module CoreFoundation.Types.Data(
   Data,
   CFData,
   fromByteString,
@@ -14,16 +14,22 @@ import qualified System.IO.Unsafe as U
 import Foreign
 import Foreign.C.Types
 
-import CoreFoundation.Base
+import CoreFoundation.Types.Base
+
+import Control.DeepSeq
+import Data.String
+import Data.Typeable
 
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Unsafe as B
+import Data.ByteString.Char8
 
-{- |
-CFData and its derived mutable type, CFMutableData (not implemented in Haskell), provide support for data objects, object-oriented wrappers for byte buffers. Data objects let simple allocated buffers (that is, data with no embedded pointers) take on the behavior of Core Foundation objects. CFData creates static data objects, and CFMutableData creates dynamic data objects. Data objects are typically used for raw data storage.
+{- | Opaque type representing the CoreFoundation @CFData object@.
 -}
 data CFData
+{- | Type wrapping @CFDataRef@. A 'ByteString' at heart. -}
 newtype Data = Data { unData :: Ref CFData }
+  deriving(Typeable)
 instance CF Data where
   type Repr Data = CFData
   wrap = Data
@@ -56,3 +62,10 @@ toByteString = toHs
 
 instance Show Data where
   show = show . toHs
+instance Eq Data where
+  a == b = toHs a == toHs b
+instance Ord Data where
+  compare a b = compare (toHs a) (toHs b)
+instance IsString Data where
+  fromString = fromHs . fromString
+instance NFData Data

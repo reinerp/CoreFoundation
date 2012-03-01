@@ -12,7 +12,7 @@ module CoreFoundation.URI(
 import qualified Prelude
 import           Prelude hiding(String)
 
-import CoreFoundation.String
+import CoreFoundation.Types.String
 
 import Control.Monad
 import Network.URI

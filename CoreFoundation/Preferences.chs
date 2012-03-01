@@ -38,11 +38,8 @@ module CoreFoundation.Preferences(
 
 import Prelude hiding(String)
 
-import CoreFoundation.Base
-import CoreFoundation.String
-import CoreFoundation.Array
-import CoreFoundation.Dictionary
-import CoreFoundation.PropertyList
+import CoreFoundation.Types
+import CoreFoundation.Marshal
 #include <CoreFoundation/CFPreferences.h>
 #include "cbits.h"
 
@@ -105,7 +102,7 @@ currentUser = constant {#call pure unsafe hsCurrentUser#}
 Obtains a preference value for the specified key and application. Wraps CFPreferencesCopyAppValue.
 -}
 getAppValue :: Key -> AppID -> IO (Maybe Plist)
-getAppValue = call2 createNullable {#call unsafe CFPreferencesCopyAppValue as ^#}
+getAppValue = call2 maybeCreate {#call unsafe CFPreferencesCopyAppValue as ^#}
 
 {- |
 Constructs and returns the list of all keys set in the specified domain. Wraps CFPreferencesCopyKeyList
@@ -125,7 +122,7 @@ Returns a preference value for a given domain.
 This function is the primitive get mechanism for the higher level preference function 'getAppValue'. Unlike the high-level function, 'getValue' searches only the exact domain specified. Do not use this function directly unless you have a need. Do not use arbitrary user and host names, instead pass the pre-defined domain qualifier constants (i.e. 'currentUser', 'anyUser', 'currentHost', 'anyHost').
 -}
 getValue :: Key -> AppID -> UserID -> HostID -> IO (Maybe Plist)
-getValue = call4 createNullable {#call unsafe CFPreferencesCopyValue as ^ #}
+getValue = call4 maybeCreate {#call unsafe CFPreferencesCopyValue as ^ #}
 
 -------------------------- Setting ---------------------------
 {- |
@@ -158,7 +155,7 @@ setMultiple ::
  -> UserID 
  -> HostID 
  -> IO ()
-setMultiple = call5 idScheme {#call unsafe CFPreferencesSetMultiple as ^ #}
+setMultiple = call5 passThrough {#call unsafe CFPreferencesSetMultiple as ^ #}
 
 {- |
 Adds, modifies, or removes a preference value for the specified domain.
@@ -211,13 +208,13 @@ Suite preferences allow you to maintain a set of preferences that are common to 
 Wraps @CFPreferencesAddSuitePreferencesToApp@.
 -}
 addSuiteToApp :: AppID -> SuiteID -> IO ()
-addSuiteToApp = call2 idScheme {#call unsafe CFPreferencesAddSuitePreferencesToApp as ^ #}
+addSuiteToApp = call2 passThrough {#call unsafe CFPreferencesAddSuitePreferencesToApp as ^ #}
 
 {- |
 Removes suite preferences from an application’s search chain.
 -}
 removeSuiteFromApp :: AppID -> SuiteID -> IO ()
-removeSuiteFromApp = call2 idScheme {#call unsafe CFPreferencesRemoveSuitePreferencesFromApp as ^ #}
+removeSuiteFromApp = call2 passThrough {#call unsafe CFPreferencesRemoveSuitePreferencesFromApp as ^ #}
 
 ----------------------- Misc ------------------
 {- |
@@ -236,45 +233,3 @@ getAppList = call2 createArray {#call unsafe CFPreferencesCopyApplicationList as
 
 
 -- marshalling utils
-checkError exception gen = do
-  res <- gen
-  when (res == 0) $ throw exception
-
-withMaybe Nothing f = f nullPtr
-withMaybe (Just o) f = withObject o f
-
-call1 scheme f = \arg1 ->
-  withObject arg1 $ \parg1 ->
-  scheme $
-  f parg1
-
-call2 scheme f = \arg1 arg2 ->
-  withObject arg1 $ \parg1 ->
-  withObject arg2 $ \parg2 ->
-  scheme $
-  f parg1 parg2
-
-call3 scheme f = \arg1 arg2 arg3 ->
-  withObject arg1 $ \parg1 ->
-  withObject arg2 $ \parg2 ->
-  withObject arg3 $ \parg3 ->
-  scheme $
-  f parg1 parg2 parg3
-
-call4 scheme f = \arg1 arg2 arg3 arg4 ->
-  withObject arg1 $ \parg1 ->
-  withObject arg2 $ \parg2 ->
-  withObject arg3 $ \parg3 ->
-  withObject arg4 $ \parg4 ->
-  scheme $
-  f parg1 parg2 parg3 parg4
-
-call5 scheme f = \arg1 arg2 arg3 arg4 arg5 ->
-  withObject arg1 $ \parg1 ->
-  withObject arg2 $ \parg2 ->
-  withObject arg3 $ \parg3 ->
-  withObject arg4 $ \parg4 ->
-  withObject arg5 $ \parg5 ->
-  scheme $
-  f parg1 parg2 parg3 parg4 parg5
-

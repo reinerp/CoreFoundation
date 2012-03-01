@@ -1,11 +1,14 @@
-module CoreFoundation.Array.Internal where
+{-# LANGUAGE MagicHash, UnboxedTuples #-}
+module CoreFoundation.Types.Array.Internal where
+
+import GHC.Exts(touch#)
+import GHC.IO(IO(..))
 
 import qualified Data.Vector as V
 import qualified Data.Vector.Storable as S
 import qualified Data.Vector.Storable.Mutable as SM
 
-import CoreFoundation.Base
-import CoreFoundation.Touch
+import CoreFoundation.Types.Base
 import Foreign
 
 import Control.Exception
@@ -22,3 +25,7 @@ buildVector len f = do
   vec <- S.unsafeFreeze mvec
   vec' <- V.mapM (get . return) $ S.convert vec
   return (vec', res)
+
+
+touch :: a -> IO ()
+touch a = IO (\s -> (# touch# a s, () #))

@@ -15,16 +15,18 @@ Cabal-version:       >=1.2
 
 Library
   Exposed-modules:
-     CoreFoundation.Base
-     CoreFoundation.String
-     CoreFoundation.Data
-     CoreFoundation.Type
-     CoreFoundation.Array
-     CoreFoundation.Dictionary
-     CoreFoundation.Date
-     CoreFoundation.Boolean
-     CoreFoundation.Number
-     CoreFoundation.PropertyList
+     CoreFoundation.Types.Base
+     CoreFoundation.Types.String
+     CoreFoundation.Types.Data
+     CoreFoundation.Types.Type
+     CoreFoundation.Types.Array
+     CoreFoundation.Types.Dictionary
+     CoreFoundation.Types.Date
+     CoreFoundation.Types.Boolean
+     CoreFoundation.Types.Number
+     CoreFoundation.Types.PropertyList
+     CoreFoundation.Types
+     CoreFoundation.Marshal
      CoreFoundation.Preferences
      CoreFoundation.URI
   Frameworks:
@@ -55,7 +57,8 @@ Library
      transformers == 0.2.*,
      property-list >= 0.0.1 && < 0.2,
      network < 2.4,
-     filepath < 1.4
+     filepath < 1.4,
+     deepseq >= 1.1 && < 1.4
 
   Build-tools:
     c2hs
@@ -70,6 +73,5 @@ Library
 
   Other-modules:
     C2HS
-    CoreFoundation.Touch
-    CoreFoundation.Array.Internal
+    CoreFoundation.Types.Array.Internal
   -- Build-tools:

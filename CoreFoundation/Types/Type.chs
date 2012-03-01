@@ -1,5 +1,5 @@
-{-# LANGUAGE ForeignFunctionInterface, GeneralizedNewtypeDeriving #-}
-module CoreFoundation.Type(
+-- | See <https://developer.apple.com/library/mac/#documentation/CoreFoundation/Reference/CFTypeRef/Reference/reference.html>
+module CoreFoundation.Types.Type(
   -- * Object-oriented hierarchy
   CF(..),
   CFConcrete(..),
@@ -25,8 +25,8 @@ import Control.Applicative
 import Control.Monad
 
 import Data.Text(Text, unpack)
-{#import CoreFoundation.Base#}
-import CoreFoundation.String
+{#import CoreFoundation.Types.Base#}
+import CoreFoundation.Types.String
 
 {#pointer CFStringRef -> CFString#}
 

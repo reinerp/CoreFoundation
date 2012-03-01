@@ -1,4 +1,5 @@
-module CoreFoundation.Number(
+-- | See <https://developer.apple.com/library/mac/#documentation/CoreFoundation/Reference/CFNumberRef/Reference/reference.html>
+module CoreFoundation.Types.Number(
   HsNumber(..),
   Number,
   CFNumber,
@@ -8,21 +9,30 @@ module CoreFoundation.Number(
 
 #include <CoreFoundation/CFNumber.h>
 #include "cbits.h"
-import CoreFoundation.Base
+import CoreFoundation.Types.Base
 import System.IO.Unsafe as U
 import Control.Monad
 
+import Data.Typeable
+import Control.DeepSeq
 import Data.Int
 import Foreign hiding (toBool, fromBool)
 import Foreign.C.Types
 
+-- | A generic \"number\". The 'Eq' and 'Ord' instances respect
+-- the structure of the type, but not the numeric structure.
 data HsNumber
  = I !Int64
  | D !Double
-  deriving(Show)
+  deriving(Eq, Ord, Show, Typeable)
+instance NFData HsNumber
+  
 
+-- | CoreFoundation @CFNumber@ type
 data CFNumber
+-- | Wraps @CFNumberRef@
 newtype Number = Number { unNumber :: Ref CFNumber }
+  deriving(Typeable)
 {#pointer CFNumberRef -> CFNumber#}
 
 type NumberType = {#type CFNumberType#}
@@ -69,11 +79,18 @@ createWith n nty =
       nty
       (castPtr np)
 
+-- | Synonym for 'toHs'
 toHsNumber :: Number -> HsNumber
 toHsNumber = toHs
 
+-- | Synonym for 'fromHs'
 fromHsNumber :: HsNumber -> Number
 fromHsNumber = fromHs
 
 instance Show Number where
   show = show . toHs
+instance Eq Number where
+  a == b = toHs a == toHs b
+instance Ord Number where
+  compare a b = compare (toHs a) (toHs b)
+instance NFData Number

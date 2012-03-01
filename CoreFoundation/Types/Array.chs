@@ -1,8 +1,11 @@
-module CoreFoundation.Array(
+-- | See <https://developer.apple.com/library/mac/#documentation/CoreFoundation/Reference/CFArrayRef/Reference/reference.html>
+module CoreFoundation.Types.Array(
   Array,
   CFArray,
   fromVector,
   toVector,
+  fromList,
+  toList,
   createArray,
   ) where
 
@@ -12,22 +15,27 @@ module CoreFoundation.Array(
 import Control.Applicative
 import Control.Exception
 import Data.Maybe(fromMaybe)
+import Data.Typeable
+import Control.DeepSeq
 
 import qualified System.IO.Unsafe as U
 import Foreign.ForeignPtr.Unsafe(unsafeForeignPtrToPtr)
 import Foreign hiding(unsafeForeignPtrToPtr)
 import Foreign.C.Types
 
-{#import CoreFoundation.Base#}
-import CoreFoundation.Array.Internal
+{#import CoreFoundation.Types.Base#}
+import CoreFoundation.Types.Array.Internal
+import CoreFoundation.Marshal
 
 import qualified Data.Vector as V
 
-{- |
-Arrays of 'CFType' objects.
--}
+-- | The opaque CoreFoundation @CFArray@ type.
 data CFArray
+{- | 
+Arrays of pointers. Wraps the @CFArrayRef@ type.
+-}
 newtype Array a = Array { unArray :: Ref CFArray }
+  deriving(Typeable)
 {#pointer CFArrayRef -> CFArray#}
 
 instance CF a => CF (Array a) where
@@ -53,15 +61,35 @@ instance CF a => CFConcrete (Array a) where
       return res
   staticType _ = TypeID {#call pure unsafe CFArrayGetTypeID as ^ #}
 
+-- | Synonym for 'fromHs'
 fromVector :: CF a => V.Vector a -> Array a
 fromVector = fromHs
 
+-- | Synonym for 'toHs'
 toVector :: CF a => Array a -> V.Vector a
 toVector = toHs
 
-createArray :: CF a => IO (Ptr CFArray) -> IO (Array a)
-createArray = fmap (fromMaybe (fromHs V.empty)) . createNullable
+-- | Convert from a list
+fromList :: CF a => [a] -> Array a
+fromList = fromVector . V.fromList
 
+-- | Convert to a list
+toList :: CF a => Array a -> [a]
+toList = V.toList . toVector
+
+{- |
+CoreFoundation represents empty arrays by null pointers, which
+may not be passed to 'create'. Instead, use this scheme for wrapping
+arrays.
+-}
+createArray :: CF a => Scheme (Ptr CFArray) (Array a)
+createArray = fmap (fromMaybe (fromHs V.empty)) . maybeCreate
 
 instance (CF a, Show a) => Show (Array a) where
   show = show . toHs
+instance (CF a, Eq a) => Eq (Array a) where
+  a == b = toHs a == toHs b
+instance (CF a, Ord a) => Ord (Array a) where
+  compare a b = compare (toHs a) (toHs b)
+-- | For CoreFoundation 'Array's, 'seq' and 'deepSeq' are the same
+instance (CF a, NFData a) => NFData (Array a)

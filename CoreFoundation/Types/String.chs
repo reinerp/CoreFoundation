@@ -1,4 +1,4 @@
-module CoreFoundation.String(
+module CoreFoundation.Types.String(
   String,
   CFString,
   fromText,
@@ -21,11 +21,23 @@ import Foreign.C.Types
 
 import qualified Data.Text as Text
 import qualified Data.Text.Foreign as Text
+import Data.Typeable
+import Control.DeepSeq
 
-{#import CoreFoundation.Base#}
+{#import CoreFoundation.Types.Base#}
 
+-- | The opaque CoreFoundation @CFString@ type.
 data CFString
+-- | 
+-- Wraps the CoreFoundation @CFStringRef@ type. Literals of this type
+-- may be constructed with the @OverloadedStrings@ language extension:
+--
+-- > {-# LANGUAGE OverloadedStrings #-}
+-- > 
+-- > my_str = "example" :: CoreFoundation.Types.String
+--
 newtype String = String { unString :: Ref CFString }
+  deriving(Typeable)
 instance CF String where
   type Repr String = CFString
   wrap = String
@@ -61,13 +73,20 @@ fromText = fromHs
 toText :: String -> Text.Text
 toText = toHs
 
+-- | Convert from a Prelude 'Prelude.String'
 fromString :: Prelude.String -> String
 fromString = fromText . Text.pack
 
+-- | Convert to a Prelude 'Prelude.String'
 toString :: String -> Prelude.String
 toString = Text.unpack . toText
 
 instance S.IsString String where
-  fromString = CoreFoundation.String.fromString
+  fromString = fromText . Text.pack
 instance Show String where
   show = show . toHs
+instance Eq String where
+  a == b = toHs a == toHs b
+instance Ord String where
+  compare a b = compare (toHs a) (toHs b)
+instance NFData String

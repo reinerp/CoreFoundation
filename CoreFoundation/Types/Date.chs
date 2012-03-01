@@ -1,5 +1,5 @@
-{-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls #-}
-module CoreFoundation.Date(
+-- | See <https://developer.apple.com/library/mac/#documentation/CoreFoundation/Reference/CFDateRef/Reference/reference.html>
+module CoreFoundation.Types.Date(
   Date,
   CFDate,
   toUTCTime,
@@ -14,11 +14,18 @@ import qualified System.IO.Unsafe as U
 import Data.Time
 import Foreign
 import Foreign.C.Types
+import Data.Typeable
+import Control.DeepSeq
+import CoreFoundation.Types.Base
 
-import CoreFoundation.Base
-
+-- | CoreFoundation @CFDate@ type.
 data CFDate
+
+{- |
+Wraps the @CFDateRef@ type.
+-}
 newtype Date = Date { unDate :: Ref CFDate }
+ deriving(Typeable)
 {#pointer CFDateRef -> CFDate#}
 instance CF Date where
   type Repr Date = CFDate
@@ -40,9 +47,11 @@ instance CFConcrete Date where
       (realToFrac (t `diffUTCTime` appleEpoch))
   staticType _ = TypeID {#call pure unsafe CFDateGetTypeID as ^ #}
 
+-- | Synonym for 'toHs'
 toUTCTime :: Date -> UTCTime
 toUTCTime = toHs
 
+-- | Synonym for 'fromHs'
 fromUTCTime :: UTCTime -> Date
 fromUTCTime = fromHs
 
@@ -55,3 +64,8 @@ appleEpoch =
 
 instance Show Date where
   show = show . toHs
+instance Eq Date where
+  a == b = toHs a == toHs b
+instance Ord Date where
+  compare a b = compare (toHs a) (toHs b)
+instance NFData Date

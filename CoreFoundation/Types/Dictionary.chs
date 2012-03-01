@@ -1,4 +1,5 @@
-module CoreFoundation.Dictionary(
+-- | See <https://developer.apple.com/library/mac/#documentation/CoreFoundation/Reference/CFDictionaryRef/Reference/reference.html>
+module CoreFoundation.Types.Dictionary(
   Dictionary,
   CFDictionary,
   fromVectors,
@@ -17,20 +18,27 @@ import Foreign.ForeignPtr.Unsafe(unsafeForeignPtrToPtr)
 import Foreign hiding(unsafeForeignPtrToPtr)
 import Foreign.C.Types
 
+import Data.Typeable
+import Control.DeepSeq
 import qualified Data.Text.Lazy as Text
 
 
-{#import CoreFoundation.Base#}
-import CoreFoundation.Array.Internal
+{#import CoreFoundation.Types.Base#}
+import CoreFoundation.Types.Array.Internal
 
 import qualified Data.Map as M
 import qualified Data.Vector as V
 
 {- |
-Arrays of 'CFType' objects.
+The CoreFoundation @CFDictionary@ type.
 -}
 data CFDictionary
+{- |
+A dictionary with keys of type @k@ and values of type @v@. Wraps
+@CFDictionaryRef@.
+-}
 newtype Dictionary k v = Dictionary { unDictionary :: Ref CFDictionary }
+  deriving(Typeable)
 {#pointer CFDictionaryRef -> CFDictionary #}
 instance (CF k, CF v) => CF (Dictionary k v) where
   type Repr (Dictionary k v) = CFDictionary
@@ -73,9 +81,11 @@ fromVectors = fromHs
 toVectors :: (CF k, CF v) => Dictionary k v -> (V.Vector k, V.Vector v)
 toVectors = toHs
 
+-- | Convert from a 'Map'
 fromMap :: (CF k, CF v) => M.Map k v -> Dictionary k v
 fromMap = fromVectors . V.unzip . V.fromList . M.toList
 
+-- | Convert to a 'Map'
 toMap :: (Ord k, CF k, CF v) => Dictionary k v -> M.Map k v
 toMap = M.fromList . V.toList . uncurry V.zip . toVectors
 
@@ -84,3 +94,9 @@ instance (CF k, CF v, Show k, Show v) => Show (Dictionary k v) where
     where
       showPair (k, v) = show k ++ ":" ++ show v
       interCommas = Text.unpack . Text.intercalate ", " . V.toList . V.map Text.pack
+instance (CF k, CF v, Eq k, Eq v) => Eq (Dictionary k v) where
+  a == b = toHs a == toHs b
+-- | Equality by converting to a 'Map'
+instance (CF k, CF v, Ord k, Ord v) => Ord (Dictionary k v) where
+  compare a b = compare (toMap a) (toMap b)
+instance NFData (Dictionary k v)

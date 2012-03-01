@@ -1,4 +1,8 @@
-module CoreFoundation.Base(
+{- | 
+Internal module. Prefer to use "CoreFoundation.Types" and
+"CoreFoundation.Marshal"
+-}
+module CoreFoundation.Types.Base(
   -- * Object-oriented hierarchy
   CF(..),
   CFConcrete(..),
@@ -15,12 +19,15 @@ module CoreFoundation.Base(
   TypeID(..),
   dynamicType,
   -- ** Memory management
-  Ref(..),
+  Ref,
   unsafeCastCF,
   extractPtr,
+  -- *** Schemes
+  Scheme,
+  checkError,
+  passThrough,
   create,
-  createNullable,
-  idScheme,
+  maybeCreate,
   get,
   constant,
   ) where
@@ -36,7 +43,8 @@ import Control.Applicative
 import Control.Monad
 import Control.Exception
 import Data.Proxy
-
+import Data.Typeable
+import Control.DeepSeq
 -------------------- Object-oriented hierarchy
 
 {- |
@@ -75,13 +83,18 @@ dynamicCast a =
 --- The 'Object' type
 {#pointer CFTypeRef -> CFType #}
 
+-- | Opaque @CFType@ object.
 data CFType
+{- | 
+Wrapper for @CFTypeRef@ object. This is the base type of the CoreFoundation type hierarchy.
+-}
 newtype Object = Object { unObject :: Ref CFType }
+  deriving(Typeable)
 instance CF Object where
   type Repr Object = CFType
   wrap = Object
   unwrap = unObject
-
+instance NFData Object
 -- | Unsafe: don't modify the object (although most CoreFoundation functions don't allow you to)
 withObject :: CF a => a -> (Ptr (Repr a) -> IO b) -> IO b
 withObject = withForeignPtr . unRef . unwrap
@@ -120,24 +133,71 @@ dynamicType o =
 -- but when garbage-collected, they release their underlying objects as appropriate.
 newtype Ref a = Ref { unRef :: ForeignPtr a }
 
+-- | Extract the underlying pointer. Make sure to touch the 'ForeignPtr' after using the 'Ptr',
+-- to make sure that the object isn't accidentally finalised.
+--
+-- To avoid this concern, prefer to use 'withObject' when possible
+extractPtr :: CF a => a -> Ptr (Repr a)
+extractPtr = U.unsafeForeignPtrToPtr . unRef . unwrap
+
 unsafeCastCF :: (CF a, CF b) => a -> b
 unsafeCastCF = wrap . Ref . castForeignPtr . unRef . unwrap
 
-idScheme :: IO a -> IO a
-idScheme = id
+---------------- Schemes
+{- |
+Schemes describe how to put CoreFoundation pointers under Haskell's memory management. 
 
--- | Put the newly-created object under Haskell's memory management, throwing an exception if the
--- object is null.
-create :: CF a => IO (Ptr (Repr a)) -> IO a
+ * The Ownership Policy document (see <https://developer.apple.com/library/mac/#documentation/CoreFoundation/Conceptual/CFMemoryMgmt/Concepts/Ownership.html>)
+defines the \"Create Rule\" and the \"Get Rule\" for memory management. In the context of Haskell,
+these rules can be adhered to by using the 'create' (or 'maybeCreate' or 'createArray') schemes
+for any CoreFoundation function with @Copy@ or @Create@ in its name; and by using 'get' for
+any other functions returning CoreFoundation objects.
+
+ * The 'constant' scheme can be used for literal constant objects, or any other objects guaranteed never to be deallocated for the life of the program.
+
+ * The 'checkError' scheme ensures that the return code is nonzero
+
+ * The 'passThrough' scheme passes the result through unmodified
+-}
+type Scheme a b = IO a -> IO b
+
+{- | 
+The 'checkError' scheme ensures that the return code for errors.
+If the return code is zero, the exception is thrown; otherwise,
+@()@ is returned.
+-}
+checkError :: (Num a, Eq a, Exception e) => e -> Scheme a ()
+checkError exception gen = do
+  res <- gen
+  when (res == 0) $ throw exception
+
+{- |
+The 'passThrough' scheme does no processing.
+
+> passThrough = id
+-}
+passThrough :: Scheme a a
+passThrough = id
+
+{- | 
+Put the newly-created object under Haskell's memory management, throwing an exception if the
+object is null. When the Haskell object is garbage collected, the
+CoreFoundation object has its reference count decremented.
+-}
+create :: CF a => Scheme (Ptr (Repr a)) a
 create gen = do
-  res <- createNullable gen
+  res <- maybeCreate gen
   case res of
     Nothing -> fail "CoreFoundation.create: null object"
     Just p -> return p
 
--- | Put the newly-created object under Haskell's memory management. This 
-createNullable :: CF a => IO (Ptr (Repr a)) -> IO (Maybe a)
-createNullable gen =
+{- | 
+Put the newly-created object under Haskell's memory management. When
+the Haskell object is garbage collected, the CoreFoundation object 
+has its reference count decremented.
+-}
+maybeCreate :: CF a => IO (Ptr (Repr a)) -> IO (Maybe a)
+maybeCreate gen =
   bracketOnError
     gen
     unref
@@ -146,21 +206,22 @@ createNullable gen =
           then return Nothing
           else (Just . wrap . Ref) <$> newForeignPtr unrefPtr ptr)
 
--- | Extract the underlying pointer. Make sure to touch the 'ForeignPtr' after using the 'Ptr',
--- to make sure that the object isn't accidentally finalised.
---
--- To avoid this concern, prefer to use 'withObject' when possible
-extractPtr :: CF a => a -> Ptr (Repr a)
-extractPtr = U.unsafeForeignPtrToPtr . unRef . unwrap
-
--- | Own (i.e. retain) the object, and put it under Haskell's memory management.
+{- |
+Own (i.e. retain) the object, and put it under Haskell's memory management.
+The CoreFoundation object has its reference count incremented upon creation
+of the Haskell object, and then decremented upon garbage collection of the
+Haskell object.
+-}
 get :: CF a => IO (Ptr (Repr a)) -> IO a
 get gen = create $ do
   ptr <- gen
   ref ptr
   return ptr
 
--- | Wrap a constant object: the object does not need to be retained or released.
+{- | 
+Wrap a constant object: the underlying object's reference count is neither
+incremented nor decremented.
+-}
 constant :: CF a => Ptr (Repr a) -> a
 constant = wrap . Ref . U.unsafePerformIO . newForeignPtr_
 
