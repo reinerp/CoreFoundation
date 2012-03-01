@@ -26,6 +26,7 @@ Library
      CoreFoundation.Number
      CoreFoundation.PropertyList
      CoreFoundation.Preferences
+     CoreFoundation.URI
   Frameworks:
      CoreFoundation
 
@@ -52,7 +53,9 @@ Library
      time < 1.5,
      tagged == 0.2.*,
      transformers == 0.2.*,
-     property-list >= 0.0.1 && < 0.2
+     property-list >= 0.0.1 && < 0.2,
+     network < 2.4,
+     filepath < 1.4
 
   Build-tools:
     c2hs
