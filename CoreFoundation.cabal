@@ -67,4 +67,5 @@ Library
   Other-modules:
     C2HS
     CoreFoundation.Touch
+    CoreFoundation.Array.Internal
   -- Build-tools:
