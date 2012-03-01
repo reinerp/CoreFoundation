@@ -5,6 +5,7 @@ for information on how to gain suitable privileges.
 module CoreFoundation.Preferences(
   -- * Types
   Key,
+  SuiteID,
   AppID,
   anyApp,
   currentApp,
@@ -27,6 +28,9 @@ module CoreFoundation.Preferences(
   SyncFailed(..),
   appSync,
   sync,
+  -- * Suite preferences
+  addSuiteToApp,
+  removeSuiteFromApp,
   -- * Misc
   appValueIsForced,
   getAppList,
