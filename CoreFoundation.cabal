@@ -39,7 +39,8 @@ Library
      FlexibleInstances,
      FlexibleContexts,
      MultiParamTypeClasses,
-     DeriveDataTypeable
+     DeriveDataTypeable,
+     OverloadedStrings
 
 
   Build-depends:

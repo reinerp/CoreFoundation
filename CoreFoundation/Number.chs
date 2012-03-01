@@ -19,6 +19,7 @@ import Foreign.C.Types
 data HsNumber
  = I !Int64
  | D !Double
+  deriving(Show)
 
 data CFNumber
 newtype Number = Number { unNumber :: Ref CFNumber }
@@ -73,3 +74,6 @@ toHsNumber = toHs
 
 fromHsNumber :: HsNumber -> Number
 fromHsNumber = fromHs
+
+instance Show Number where
+  show = show . toHs

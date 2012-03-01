@@ -69,3 +69,5 @@ toString = Text.unpack . toText
 
 instance S.IsString String where
   fromString = CoreFoundation.String.fromString
+instance Show String where
+  show = show . toHs

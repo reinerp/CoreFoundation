@@ -52,3 +52,6 @@ appleEpoch =
     utctDay = fromGregorian 2001 1 1,
     utctDayTime = 0
     }
+
+instance Show Date where
+  show = show . toHs

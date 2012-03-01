@@ -83,6 +83,10 @@ data PlistView
  | Data !Data
  | Array !(Array Plist)
  | Dictionary !(Dictionary String Plist)
+  deriving(Show)
+
+instance Show Plist where
+  show = show . viewPlist
 
 ------------ support for Data.PropertyList
 instance PListAlgebra Identity Plist where
@@ -130,4 +134,3 @@ fromPropertyList = PL.toPlistWith idId
   where
     idId :: Identity a -> Identity a
     idId = id
-

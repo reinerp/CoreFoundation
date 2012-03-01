@@ -56,3 +56,6 @@ fromVector = fromHs
 
 toVector :: CF a => Array a -> V.Vector a
 toVector = toHs
+
+instance (CF a, Show a) => Show (Array a) where
+  show = show . toHs

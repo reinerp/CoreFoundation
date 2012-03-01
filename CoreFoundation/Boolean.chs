@@ -44,3 +44,6 @@ kTrue = constant {#call pure unsafe hsTrue#}
 
 kFalse :: Boolean
 kFalse = constant {#call pure unsafe hsFalse#}
+
+instance Show Boolean where
+  show = show . toHs

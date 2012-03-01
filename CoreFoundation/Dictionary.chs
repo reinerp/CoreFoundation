@@ -1,4 +1,3 @@
-{-# LANGUAGE ForeignFunctionInterface, ScopedTypeVariables, EmptyDataDecls, ViewPatterns #-}
 module CoreFoundation.Dictionary(
   Dictionary,
   CFDictionary,
@@ -17,6 +16,8 @@ import qualified System.IO.Unsafe as U
 import Foreign.ForeignPtr.Unsafe(unsafeForeignPtrToPtr)
 import Foreign hiding(unsafeForeignPtrToPtr)
 import Foreign.C.Types
+
+import qualified Data.Text.Lazy as Text
 
 
 {#import CoreFoundation.Base#}
@@ -77,3 +78,9 @@ fromMap = fromVectors . V.unzip . V.fromList . M.toList
 
 toMap :: (Ord k, CF k, CF v) => Dictionary k v -> M.Map k v
 toMap = M.fromList . V.toList . uncurry V.zip . toVectors
+
+instance (CF k, CF v, Show k, Show v) => Show (Dictionary k v) where
+  show = interCommas . V.map showPair . uncurry V.zip . toHs
+    where
+      showPair (k, v) = show k ++ ":" ++ show v
+      interCommas = Text.unpack . Text.intercalate ", " . V.toList . V.map Text.pack

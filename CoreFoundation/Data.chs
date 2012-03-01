@@ -53,3 +53,6 @@ fromByteString = fromHs
 -- | Synonym for 'toHs'
 toByteString :: Data -> B.ByteString
 toByteString = toHs
+
+instance Show Data where
+  show = show . toHs
