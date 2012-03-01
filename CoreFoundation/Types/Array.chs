@@ -13,19 +13,16 @@ module CoreFoundation.Types.Array(
 #include "cbits.h"
 
 import Control.Applicative
-import Control.Exception
 import Data.Maybe(fromMaybe)
 import Data.Typeable
 import Control.DeepSeq
 
 import qualified System.IO.Unsafe as U
-import Foreign.ForeignPtr.Unsafe(unsafeForeignPtrToPtr)
-import Foreign hiding(unsafeForeignPtrToPtr)
+import Foreign
 import Foreign.C.Types
 
 {#import CoreFoundation.Types.Base#}
 import CoreFoundation.Types.Array.Internal
-import CoreFoundation.Marshal
 
 import qualified Data.Vector as V
 

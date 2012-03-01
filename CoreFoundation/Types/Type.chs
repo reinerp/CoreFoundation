@@ -22,7 +22,6 @@ import qualified System.IO.Unsafe as U
 import C2HS
 
 import Control.Applicative
-import Control.Monad
 
 import Data.Text(Text, unpack)
 {#import CoreFoundation.Types.Base#}

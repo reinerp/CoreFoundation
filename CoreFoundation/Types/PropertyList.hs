@@ -1,5 +1,3 @@
--- See http://www.declaresub.com/ideclare/CoreFoundation/12.html
-
 -- | See <https://developer.apple.com/library/mac/#documentation/CoreFoundation/Reference/CFPropertyListRef/Reference/reference.html>
 module CoreFoundation.Types.PropertyList(
   -- * Basic interface
@@ -14,10 +12,6 @@ module CoreFoundation.Types.PropertyList(
   toPropertyList,
   fromPropertyList,
   ) where
-
--- get header parse errors otherwise
-#define __BLOCKS__ 0
-#include <CoreFoundation/CFPropertyList.h>
 
 import Prelude hiding(String)
 import qualified Prelude
@@ -71,7 +65,7 @@ extracted using either 'fromPlist' or 'viewPlist'.
 -}
 newtype Plist = Plist { unPlist :: Ref CFPropertyList }
   deriving(Typeable)
-{#pointer CFPropertyListRef -> CFPropertyList#}
+
 instance CF Plist where
   type Repr Plist = CFPropertyList
   wrap = Plist
@@ -162,7 +156,7 @@ instance Applicative f => PListCoalgebra f Plist where
     (fromPlist -> Just v) -> mk (PLString . T.unpack) v
     (fromPlist -> Just v) -> mk PLBool v
    where
-    mk :: forall b a. PlistClass a => (Hs a -> PropertyListS Plist) -> a -> f (PropertyListS Plist)
+    mk :: forall a. PlistClass a => (Hs a -> PropertyListS Plist) -> a -> f (PropertyListS Plist)
     mk ctor v = pure . ctor . toHs $ v
 
 -- | Convert to 'PL.PropertyList'

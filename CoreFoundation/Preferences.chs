@@ -44,10 +44,8 @@ import CoreFoundation.Marshal
 #include "cbits.h"
 
 import Control.Applicative
-import Control.Monad
 import Control.Exception
 import Data.Typeable
-import qualified Data.Vector as V
 import Foreign
 import Foreign.C.Types
 

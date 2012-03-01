@@ -8,8 +8,6 @@ module CoreFoundation.Types.Data(
 #include "CoreFoundation/CFData.h"
 #include "cbits.h"
 
-import Control.Applicative
-
 import qualified System.IO.Unsafe as U
 import Foreign
 import Foreign.C.Types
@@ -22,7 +20,7 @@ import Data.Typeable
 
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Unsafe as B
-import Data.ByteString.Char8
+import Data.ByteString.Char8()
 
 {- | Opaque type representing the CoreFoundation @CFData object@.
 -}

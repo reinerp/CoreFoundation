@@ -14,8 +14,7 @@ module CoreFoundation.Types.Dictionary(
 import Control.Applicative
 
 import qualified System.IO.Unsafe as U
-import Foreign.ForeignPtr.Unsafe(unsafeForeignPtrToPtr)
-import Foreign hiding(unsafeForeignPtrToPtr)
+import Foreign
 import Foreign.C.Types
 
 import Data.Typeable

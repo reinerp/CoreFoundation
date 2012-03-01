@@ -28,8 +28,6 @@ module CoreFoundation.Marshal(
   ) where
 
 import Foreign
-import Control.Monad
-import Control.Exception
 import CoreFoundation.Types.Base
 
 -- | Get the pointer for the object, or a null pointer otherwise

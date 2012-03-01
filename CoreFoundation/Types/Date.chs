@@ -8,8 +8,6 @@ module CoreFoundation.Types.Date(
 
 #include <CoreFoundation/CFDate.h>
 
-import Control.Applicative
-
 import qualified System.IO.Unsafe as U
 import Data.Time
 import Foreign

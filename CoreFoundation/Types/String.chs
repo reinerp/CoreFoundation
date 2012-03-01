@@ -10,8 +10,6 @@ module CoreFoundation.Types.String(
 #include "CoreFoundation/CFString.h"
 #include "cbits.h"
 
-import Control.Applicative
-
 import qualified Data.String as S
 import Prelude hiding(String)
 import qualified Prelude
