@@ -12,6 +12,7 @@ module CoreFoundation.String(
 
 import Control.Applicative
 
+import qualified Data.String as S
 import Prelude hiding(String)
 import qualified Prelude
 import qualified System.IO.Unsafe as U
@@ -65,3 +66,6 @@ fromString = fromText . Text.pack
 
 toString :: String -> Prelude.String
 toString = Text.unpack . toText
+
+instance S.IsString String where
+  fromString = CoreFoundation.String.fromString
